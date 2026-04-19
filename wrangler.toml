@@ -1,23 +1,14 @@
-name = "r2-registry"
+name = "serverless-registry"
 
 workers_dev = true
 main = "./index.ts"
 compatibility_date = "2024-09-09"
 compatibility_flags = ["nodejs_compat"]
 
-## Production
-[env.production]
 r2_buckets = [
   { binding = "REGISTRY", bucket_name = "zot" }
 ]
 
-[env.production.vars]
-# Leave empty unless using JWT-based auth. USERNAME/PASSWORD go in via `wrangler secret put`.
-JWT_REGISTRY_TOKENS_PUBLIC_KEY = ""
-
-## Dev - for local `npx wrangler dev`
-[env.dev]
-r2_buckets = [{ binding = "REGISTRY", bucket_name = "r2-image-registry-dev" }]
-[env.dev.vars]
-USERNAME = "hello"
-PASSWORD = "world"
+# Secrets (USERNAME / PASSWORD / READONLY_USERNAME / READONLY_PASSWORD /
+# JWT_REGISTRY_TOKENS_PUBLIC_KEY) 通过 `wrangler secret put` 或 Dashboard
+# 的 Variables → Encrypted 注入，不放这里。
