@@ -9,6 +9,7 @@ import {
   GetLayerResponse,
   GetManifestResponse,
   ListRepositoriesResponse,
+  ListTagsResponse,
   PutManifestResponse,
   Registry,
   RegistryConfiguration,
@@ -525,6 +526,10 @@ export class RegistryHTTPClient implements Registry {
   }
 
   async listRepositories(_limit?: number, _last?: string): Promise<RegistryError | ListRepositoriesResponse> {
+    throw new Error("unimplemented");
+  }
+
+  async listTags(_namespace: string, _n: number, _last?: string): Promise<RegistryError | ListTagsResponse> {
     throw new Error("unimplemented");
   }
 

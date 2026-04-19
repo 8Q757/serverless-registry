@@ -60,6 +60,14 @@ export type ListRepositoriesResponse = {
   cursor?: string;
 };
 
+// Response of listTags — mirrors OCI `GET /v2/<name>/tags/list`.
+export type ListTagsResponse = {
+  name: string;
+  tags: string[];
+  // When set, the caller should include a Link header for pagination.
+  truncated?: boolean;
+};
+
 // Response layerExists call
 export type CheckLayerResponse =
   | {
@@ -121,6 +129,9 @@ export interface Registry {
 
   // listing repositories in the registry
   listRepositories(limit?: number, last?: string): Promise<ListRepositoriesResponse | RegistryError>;
+
+  // listing tags within a repository
+  listTags(namespace: string, n: number, last?: string): Promise<ListTagsResponse | RegistryError>;
 
   // gets the manifest by namespace + digest
   getManifest(namespace: string, digest: string): Promise<GetManifestResponse | RegistryError>;

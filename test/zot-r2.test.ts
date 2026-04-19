@@ -171,6 +171,30 @@ describe("ZotR2Registry", () => {
     expect(res).toEqual({ exists: false });
   });
 
+  test("listTags returns all annotated tags from index.json", async () => {
+    const body = JSON.stringify({ schemaVersion: 2 });
+    const d1 = await putBlob("many", body + "1");
+    const d2 = await putBlob("many", body + "2");
+    const d3 = await putBlob("many", body + "3");
+    await putIndex("many", [
+      { digest: d1, mediaType: "application/vnd.oci.image.manifest.v1+json", size: 10, tag: "v1" },
+      { digest: d2, mediaType: "application/vnd.oci.image.manifest.v1+json", size: 10, tag: "v2" },
+      { digest: d3, mediaType: "application/vnd.oci.image.manifest.v1+json", size: 10, tag: "latest" },
+    ]);
+
+    const res = await zot.listTags("many", 50);
+    if (!("tags" in res)) throw new Error("expected tags");
+    expect(res.name).toBe("many");
+    expect(res.tags.sort()).toEqual(["latest", "v1", "v2"]);
+    expect(res.truncated).toBe(false);
+  });
+
+  test("listTags returns empty list for a repo with no index.json", async () => {
+    const res = await zot.listTags("doesnotexist", 10);
+    if (!("tags" in res)) throw new Error("expected tags");
+    expect(res.tags).toEqual([]);
+  });
+
   test("listRepositories enumerates repos via oci-layout markers", async () => {
     await putIndex("alpine", []);
     await putIndex("ubuntu", []);
