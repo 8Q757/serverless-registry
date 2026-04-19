@@ -547,52 +547,28 @@ export type TagsList = {
 
 v2Router.get("/:name+/tags/list", async (req, env: Env) => {
   const { name } = req.params;
-
   const { n: nStr = 50, last } = req.query;
   const n = +nStr;
   if (isNaN(n) || n <= 0) {
     throw new ServerError("invalid 'n' parameter", 400);
   }
 
-  let tags = await env.REGISTRY.list({
-    prefix: `${name}/manifests`,
-    limit: n,
-    startAfter: last ? `${name}/manifests/${last}` : undefined,
-  });
-  // Filter out sha256 manifest
-  let manifestTags = tags.objects.filter((tag) => !tag.key.startsWith(`${name}/manifests/sha256:`));
-  // If results are truncated and the manifest filter removed some result, extend the search to reach the n number of results expected by the client
-  while (tags.objects.length > 0 && tags.truncated && manifestTags.length !== n) {
-    tags = await env.REGISTRY.list({
-      prefix: `${name}/manifests`,
-      limit: n - manifestTags.length,
-      cursor: tags.cursor,
-    });
-    // Filter out sha256 manifest
-    manifestTags = manifestTags.concat(tags.objects.filter((tag) => !tag.key.startsWith(`${name}/manifests/sha256:`)));
-  }
+  const result = await env.REGISTRY_CLIENT.listTags(name as string, n, last as string | undefined);
+  if ("response" in result) return result.response;
 
-  const keys = manifestTags.map((object) => object.key.split("/").pop()!);
-  const url = new URL(req.url);
-  url.searchParams.set("n", `${n}`);
-  url.searchParams.set("last", keys.length ? keys[keys.length - 1] : "");
   const responseHeaders: { "Content-Type": string; "Link"?: string } = {
     "Content-Type": "application/json",
   };
-  // Only supply a next link if the previous result is truncated
-  if (tags.truncated) {
+  if (result.truncated && result.tags.length > 0) {
+    const url = new URL(req.url);
+    url.searchParams.set("n", `${n}`);
+    url.searchParams.set("last", result.tags[result.tags.length - 1]);
     responseHeaders.Link = `${url.toString()}; rel=next`;
   }
-  return new Response(
-    JSON.stringify({
-      name,
-      tags: keys,
-    }),
-    {
-      status: 200,
-      headers: responseHeaders,
-    },
-  );
+  return new Response(JSON.stringify({ name: result.name, tags: result.tags }), {
+    status: 200,
+    headers: responseHeaders,
+  });
 });
 
 v2Router.delete("/:name+/blobs/:digest", async (req, env: Env) => {

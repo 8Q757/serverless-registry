@@ -9,6 +9,7 @@ import {
   GetLayerResponse,
   GetManifestResponse,
   ListRepositoriesResponse,
+  ListTagsResponse,
   PutManifestResponse,
   Registry,
   RegistryError,
@@ -195,6 +196,23 @@ export class ZotR2Registry implements Registry {
       stream: obj.body!,
       digest,
       size: obj.size,
+    };
+  }
+
+  async listTags(name: string, n: number, last?: string): Promise<ListTagsResponse | RegistryError> {
+    const idx = await this.readIndex(name);
+    if (!idx) return { name, tags: [] };
+    const all = idx.manifests
+      .map((m) => m.annotations?.[TAG_ANNOTATION])
+      .filter((t): t is string => typeof t === "string" && t.length > 0)
+      .sort();
+    const startIdx = last ? all.findIndex((t) => t > last) : 0;
+    const effectiveStart = startIdx < 0 ? all.length : startIdx;
+    const window = all.slice(effectiveStart, effectiveStart + n);
+    return {
+      name,
+      tags: window,
+      truncated: effectiveStart + n < all.length,
     };
   }
 

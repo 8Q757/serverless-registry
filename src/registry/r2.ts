@@ -20,6 +20,7 @@ import {
   GetLayerResponse,
   GetManifestResponse,
   ListRepositoriesResponse,
+  ListTagsResponse,
   PutManifestResponse,
   Registry,
   RegistryError,
@@ -256,6 +257,30 @@ export class R2Registry implements Registry {
     return {
       repositories: repositoriesOrder,
       cursor: lastSeen,
+    };
+  }
+
+  async listTags(name: string, n: number, last?: string): Promise<ListTagsResponse | RegistryError> {
+    let tags = await this.env.REGISTRY.list({
+      prefix: `${name}/manifests`,
+      limit: n,
+      startAfter: last ? `${name}/manifests/${last}` : undefined,
+    });
+    let manifestTags = tags.objects.filter((t) => !t.key.startsWith(`${name}/manifests/sha256:`));
+    while (tags.objects.length > 0 && tags.truncated && manifestTags.length !== n) {
+      tags = await this.env.REGISTRY.list({
+        prefix: `${name}/manifests`,
+        limit: n - manifestTags.length,
+        cursor: tags.cursor,
+      });
+      manifestTags = manifestTags.concat(
+        tags.objects.filter((t) => !t.key.startsWith(`${name}/manifests/sha256:`)),
+      );
+    }
+    return {
+      name,
+      tags: manifestTags.map((o) => o.key.split("/").pop()!),
+      truncated: tags.truncated,
     };
   }
 
