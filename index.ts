@@ -8,6 +8,7 @@ import v2Router from "./src/router";
 import { authenticationMethodFromEnv } from "./src/authentication-method";
 import { Registry } from "./src/registry/registry";
 import { R2Registry } from "./src/registry/r2";
+import { ZotR2Registry } from "./src/registry/zot-r2";
 
 // A full compatibility mode means that the r2 registry will try its best to
 // help the client on the layer push. See how we let the client push layers with chunked uploads for more information.
@@ -24,6 +25,12 @@ export interface Env {
   PUSH_COMPATIBILITY_MODE?: PushCompatibilityMode;
   REGISTRIES_JSON?: string; // should be in the format of RegistryConfiguration[];
   REGISTRY_CLIENT: Registry;
+  // When "true" (string), the registry reads from an R2 bucket written by zot
+  // using the OCI Image Layout format. Writes return 501. See src/registry/zot-r2.ts.
+  ZOT_READ_COMPAT?: string;
+  // Prefix under which zot stores its OCI Image Layout trees.
+  // Defaults to "zot/zot" which matches a zot config of rootdirectory="/zot".
+  ZOT_ROOT_PREFIX?: string;
 }
 
 const router = Router();
@@ -52,7 +59,7 @@ export default {
       return new AuthErrorResponse(request);
     }
 
-    env.REGISTRY_CLIENT = new R2Registry(env);
+    env.REGISTRY_CLIENT = env.ZOT_READ_COMPAT === "true" ? new ZotR2Registry(env) : new R2Registry(env);
     try {
       // Dispatch the request to the appropriate route
       const res = await router.handle(request, env, context);

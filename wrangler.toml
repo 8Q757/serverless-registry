@@ -9,6 +9,16 @@ r2_buckets = [
   { binding = "REGISTRY", bucket_name = "zot" }
 ]
 
-# Secrets (USERNAME / PASSWORD / READONLY_USERNAME / READONLY_PASSWORD /
+[vars]
+# Enable zot/OCI-Image-Layout read mode. Writes return 501; pushes must go to zot.
+ZOT_READ_COMPAT = "true"
+# Prefix under which zot stores its OCI Image Layout trees. Matches a zot
+# config of rootdirectory="/zot" (which produces "zot/zot/<repo>/..." in R2).
+ZOT_ROOT_PREFIX = "zot/zot"
+
+# Secrets (PASSWORD / READONLY_USERNAME / READONLY_PASSWORD /
 # JWT_REGISTRY_TOKENS_PUBLIC_KEY) 通过 `wrangler secret put` 或 Dashboard
 # 的 Variables → Encrypted 注入，不放这里。
+#
+# USERNAME 必须手动在 Dashboard 设为 Encrypted（或也放进这个 [vars]）。
+# 不放这里以避免 deploy 时覆盖生产 dashboard 里已有的值。
