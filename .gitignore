@@ -4,5 +4,4 @@ node_modules
 *.vars
 wrangler.toml
 wrangler.jsonc
-worker-configuration.d.ts
 *.tsbuildinfo

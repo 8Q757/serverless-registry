@@ -5,3 +5,16 @@ allowBuilds:
   esbuild: true
   sharp: true
   workerd: true
+
+# Cloudflare packages are exempt from the release age check
+minimumReleaseAge: 1440 # 24 hours
+minimumReleaseAgeExclude:
+  - "@cloudflare/*"
+  - cloudflare
+  - miniflare
+  - workerd
+  - wrangler
+
+# Don't install 3.2.2 due to https://github.com/tsndr/cloudflare-worker-jwt/issues/97
+overrides:
+  "@tsndr/cloudflare-worker-jwt@3.2.2": "3.2.1"
