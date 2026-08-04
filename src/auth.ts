@@ -1,5 +1,4 @@
-import { decode } from "@cfworker/base64url";
-import { errorString } from "./utils";
+import { base64UrlDecode, errorString } from "./utils";
 
 export type RegistryTokenCapability = "push" | "pull";
 export type RegistryAuthProtocolTokenPayload = {
@@ -42,7 +41,7 @@ export function stripUsernamePasswordFromHeader(r: Request): [string, string] | 
 
   try {
     // Decodes the base64 value and performs unicode normalization.
-    const decoded = decode(encoded);
+    const decoded = base64UrlDecode(encoded);
 
     // The username & password are split by the first colon.
     //=> example: "username:password"

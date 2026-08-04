@@ -1,4 +1,3 @@
-import { decode } from "@cfworker/base64url";
 import jwt from "@tsndr/cloudflare-worker-jwt";
 import {
   RegistryTokenCapability,
@@ -6,12 +5,13 @@ import {
   stripUsernamePasswordFromHeader,
   Authenticator,
 } from "./auth";
+import { base64UrlDecode } from "./utils";
 
 export function importKeyFromBase64(key: string): JsonWebKeyWithKid {
   // Decodes the base64 value and performs unicode normalization.
   // The library's `JsonWebKeyWithKid` type requires `kid`, but ES256/HS256 sign
   // and verify only need the key material at runtime, so casting is safe.
-  return JSON.parse(decode(key)) as JsonWebKeyWithKid;
+  return JSON.parse(base64UrlDecode(key)) as JsonWebKeyWithKid;
 }
 
 export async function newRegistryTokens(jwtPublicKey: string): Promise<RegistryTokens> {

@@ -1,3 +1,4 @@
+import { base64url } from "rfc4648";
 import { prettifyError, ZodError } from "zod";
 
 export async function readableToBlob(
@@ -63,4 +64,14 @@ export async function wrap<T, E = unknown>(fn: Promise<T>): Promise<[T, null] | 
 
 export function jsonHeaders(): { "content-type": "application/json" } {
   return { "content-type": "application/json" };
+}
+
+const textDecoder = new TextDecoder();
+
+export function base64UrlDecode(s: string): string {
+  return textDecoder.decode(base64url.parse(s, { loose: true }));
+}
+
+export function base64UrlEncode(s: string): string {
+  return Buffer.from(s, "utf8").toString("base64url");
 }
