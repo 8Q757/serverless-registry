@@ -7,12 +7,12 @@ import { RegistryAuthProtocolTokenPayload } from "../src/auth";
 import { registries } from "../src/registry/registry";
 import type { ReferrerDescriptor } from "../src/registry/registry";
 import { isDockerDotIO, RegistryHTTPClient } from "../src/registry/http";
-import { encode } from "@cfworker/base64url";
 import { ManifestSchema } from "../src/manifest";
 import { limit } from "../src/chunk";
 import worker from "../index";
 import { env } from "cloudflare:workers";
 import { createExecutionContext, reset, waitOnExecutionContext } from "cloudflare:test";
+import { base64UrlEncode } from "../src/utils";
 
 afterEach(async () => {
   await reset();
@@ -149,14 +149,14 @@ describe("v2", () => {
   test("Username password authenticatiom fails gracefully when wrong format", async () => {
     const res = await fetchUnauth(
       createRequest("GET", `/v2/`, null, {
-        Authorization: `Basic ${encode("hello")}:${encode("t")}`,
+        Authorization: `Basic ${base64UrlEncode("hello")}:${base64UrlEncode("t")}`,
       }),
     );
     expect(res.status).toBe(401);
   });
 
   test("Username password authenticatiom fails gracefully when password is wrong", async () => {
-    const cred = encode(`hello:t`);
+    const cred = base64UrlEncode(`hello:t`);
     const res = await fetchUnauth(
       createRequest("GET", `/v2/`, null, {
         Authorization: `Basic ${cred}`,
@@ -166,7 +166,7 @@ describe("v2", () => {
   });
 
   test("Simple username password authenticatiom fails gracefully when password is wrong", async () => {
-    const cred = encode(`hello:t`);
+    const cred = base64UrlEncode(`hello:t`);
     const res = await fetchUnauth(
       createRequest("GET", `/v2/`, null, {
         Authorization: `Basic ${cred}`,
@@ -176,7 +176,7 @@ describe("v2", () => {
   });
 
   test("Simple username password authenticatiom fails gracefully when username is wrong", async () => {
-    const cred = encode(`hell0:world`);
+    const cred = base64UrlEncode(`hell0:world`);
     const res = await fetchUnauth(
       createRequest("GET", `/v2/`, null, {
         Authorization: `Basic ${cred}`,

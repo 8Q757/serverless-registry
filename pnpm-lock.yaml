@@ -11,15 +11,15 @@ importers:
 
   .:
     dependencies:
-      '@cfworker/base64url':
-        specifier: ^1.12.5
-        version: 1.12.5
       '@tsndr/cloudflare-worker-jwt':
         specifier: 3.2.1
         version: 3.2.1
       itty-router:
         specifier: ^5.0.24
         version: 5.0.24
+      rfc4648:
+        specifier: ^1.5.4
+        version: 1.5.4
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -75,9 +75,6 @@ importers:
         version: 6.0.3
 
 packages:
-
-  '@cfworker/base64url@1.12.5':
-    resolution: {integrity: sha512-pNLrz0D0MguzFLJisBUv+XOTkpRpRTIMI7/r2QwTWI2MR5VJ7Hysd6ug6DBWksKFy7TK3hCf+qejufdJSN5X+A==}
 
   '@cloudflare/kv-asset-handler@0.5.0':
     resolution: {integrity: sha512-jxQYkj8dSIzc0cD6cMMNdOc1UVjqSqu8BZdor5s8cGjW2I8BjODt/kWPVdY+u9zj3ms75Q5qaZgnxUad83+eAg==}
@@ -1289,8 +1286,8 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
-  rfc4648@1.5.3:
-    resolution: {integrity: sha512-MjOWxM065+WswwnmNONOT+bD1nXzY9Km6u3kzvnx8F8/HXGZdz3T6e6vZJ8Q/RIMUSp/nxqjH3GwvJDy8ijeQQ==}
+  rfc4648@1.5.4:
+    resolution: {integrity: sha512-rRg/6Lb+IGfJqO05HZkN50UtY7K/JhxJag1kP23+zyMfrvoB0B7RWv06MbOzoc79RgCdNTiUaNsTT1AJZ7Z+cg==}
 
   rolldown@1.2.2:
     resolution: {integrity: sha512-opwpo1tQBAcpSUJDt94B7hhLNGOKjCdE//XXjeLrnx9b83bjnw45tXdg1b09yEw/VLFBJGZpwRULMmOZo7ol+A==}
@@ -1544,10 +1541,6 @@ packages:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
 snapshots:
-
-  '@cfworker/base64url@1.12.5':
-    dependencies:
-      rfc4648: 1.5.3
 
   '@cloudflare/kv-asset-handler@0.5.0': {}
 
@@ -2503,7 +2496,7 @@ snapshots:
 
   punycode@2.3.1: {}
 
-  rfc4648@1.5.3: {}
+  rfc4648@1.5.4: {}
 
   rolldown@1.2.2:
     dependencies:
