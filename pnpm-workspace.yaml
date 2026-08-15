@@ -14,7 +14,3 @@ minimumReleaseAgeExclude:
   - miniflare
   - workerd
   - wrangler
-
-# Don't install 3.2.2 due to https://github.com/tsndr/cloudflare-worker-jwt/issues/97
-overrides:
-  "@tsndr/cloudflare-worker-jwt@3.2.2": "3.2.1"
