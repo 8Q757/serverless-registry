@@ -15,27 +15,27 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@tsndr/cloudflare-worker-jwt": "^3.2.2",
+    "@tsndr/cloudflare-worker-jwt": "^3.2.3",
     "itty-router": "^5.0.24",
     "rfc4648": "^1.5.4",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.20.1",
+    "@cloudflare/vitest-pool-workers": "^0.21.3",
     "@eslint/js": "^10.0.1",
-    "@types/node": "26.1.2",
+    "@types/node": "26.2.0",
     "@typescript/native": "npm:typescript@^7.0.2",
-    "eslint": "^10.8.0",
+    "eslint": "^10.8.1",
     "prettier": "3.9.6",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "typescript-eslint": "^8.66.0",
+    "typescript-eslint": "^8.67.0",
     "vitest": "^4.1.10",
-    "wrangler": "^4.118.0"
+    "wrangler": "^4.123.0"
   },
   "engines": {
     "node": ">=24.0.0",
     "pnpm": ">=11.0.0"
   },
   "license": "Apache-2.0",
-  "packageManager": "pnpm@11.20.0"
+  "packageManager": "pnpm@11.21.0"
 }
