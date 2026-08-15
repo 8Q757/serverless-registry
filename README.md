@@ -66,6 +66,19 @@ Set the USERNAME and PASSWORD as secrets with `npx wrangler secret put USERNAME 
 You can add a base64 encoded JWT public key to verify passwords (or token) that are signed by the private key.
 `npx wrangler secret put JWT_REGISTRY_TOKENS_PUBLIC_KEY --env production`
 
+Tokens are bound to a single registry. Every token must carry an `aud` claim naming
+the registry it is for, and a request is rejected with `401` unless `aud` matches the
+host it arrived on. `createToken()` sets this from its `registryUrl` argument. Only
+host and port are compared, so `https://registry.example`, `http://registry.example`
+and `registry.example` are equivalent, but `registry.example:8787` is a different
+registry from `registry.example`.
+
+**Give each deployment its own key pair.** This registry has no per-account or
+per-repository scoping: any token that verifies grants the full extent of its
+capabilities over the whole registry. Deployments sharing a
+`JWT_REGISTRY_TOKENS_PUBLIC_KEY` therefore form one trust domain, and the `aud` check
+is all that separates them.
+
 ### Using with Docker
 
 You can use this registry with Docker to push and pull images.

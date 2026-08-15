@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { SHA256_PREFIX_LEN, getSHA256 } from "../src/user";
 import { TagsList } from "../src/router";
 import { Env } from "..";
-import { RegistryTokens } from "../src/token";
-import { RegistryAuthProtocolTokenPayload } from "../src/auth";
+import { newRegistryTokens, RegistryTokens } from "../src/token";
+import { RegistryAuthProtocolTokenPayload, RegistryTokenCapability } from "../src/auth";
 import { registries } from "../src/registry/registry";
 import type { ReferrerDescriptor } from "../src/registry/registry";
 import { isDockerDotIO, RegistryHTTPClient } from "../src/registry/http";
@@ -1279,6 +1279,154 @@ describe("tokens", async () => {
       capabilities: ["push", "pull"],
     } as RegistryAuthProtocolTokenPayload);
     expect(verified).toBeTruthy();
+  });
+});
+
+// A token carries the registry it was minted for in its `aud` claim. Two
+// deployments that trust the same JWT_REGISTRY_TOKENS_PUBLIC_KEY must not
+// accept each other's tokens, otherwise a token holder on one registry can
+// read (or with "push", overwrite) content on the other.
+describe("token audience binding", async () => {
+  const registryA = "registry-a.example";
+  const registryB = "registry-b.example";
+
+  async function mintToken(
+    audience: string,
+    capabilities: RegistryTokenCapability[] = ["pull"],
+  ): Promise<{ token: string; publicKey: string }> {
+    const [privateKey, publicKey] = await RegistryTokens.createPrivateAndPublicKey();
+    const tokens = await newRegistryTokens(publicKey);
+    const token = await tokens.createToken("some-account-id", capabilities, 30, privateKey, audience);
+    return { token, publicKey };
+  }
+
+  // authenticationMethodFromEnv prefers the JWT authenticator, but clearing the
+  // basic-auth vars keeps the intent of these tests unambiguous.
+  function jwtEnv(publicKey: string): Env {
+    return {
+      ...(env as Env),
+      JWT_REGISTRY_TOKENS_PUBLIC_KEY: publicKey,
+      USERNAME: undefined,
+      PASSWORD: undefined,
+      READONLY_USERNAME: undefined,
+      READONLY_PASSWORD: undefined,
+    };
+  }
+
+  // Docker sends the token in the Basic-auth password field, which is exactly
+  // how this registry expects to receive it.
+  async function fetchWithToken(host: string, path: string, token: string, publicKey: string): Promise<Response> {
+    const request = new Request(new URL(`https://${host}${path}`), {
+      method: "GET",
+      headers: { Authorization: usernamePasswordToAuth("v0", token) },
+    });
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(request, jwtEnv(publicKey), ctx);
+    await waitOnExecutionContext(ctx);
+    return res as Response;
+  }
+
+  test("a token replayed against another registry cannot read a manifest", async () => {
+    // This registry applies no per-account or per-host key prefixing, so the
+    // manifest seeded here is reachable from any host that serves this bucket.
+    // The audience claim is the only thing standing between the two registries.
+    const name = "victim/app";
+    await createManifest(name, await generateManifest(name), "latest");
+
+    const { token, publicKey } = await mintToken(`https://${registryA}`);
+
+    // Control: the token is otherwise entirely valid, and the manifest is
+    // readable, on the registry the token names.
+    const authorized = await fetchWithToken(registryA, `/v2/${name}/manifests/latest`, token, publicKey);
+    expect(authorized.status).toBe(200);
+
+    // Replay: the same token against a second registry trusting the same key.
+    // Before the audience check this returned 200 and leaked the manifest.
+    const replayed = await fetchWithToken(registryB, `/v2/${name}/manifests/latest`, token, publicKey);
+    expect(replayed.status).toBe(401);
+  });
+
+  test("a token replayed against another registry cannot reach the API root", async () => {
+    const { token, publicKey } = await mintToken(`https://${registryA}`);
+
+    const authorized = await fetchWithToken(registryA, "/v2/", token, publicKey);
+    expect(authorized.status).toBe(200);
+
+    // /v2/ short-circuits the capability checks, so it needs its own coverage:
+    // the audience must be enforced before that short-circuit is reached.
+    const replayed = await fetchWithToken(registryB, "/v2/", token, publicKey);
+    expect(replayed.status).toBe(401);
+  });
+
+  test("a push token replayed against another registry cannot write", async () => {
+    const { token, publicKey } = await mintToken(`https://${registryA}`, ["pull", "push"]);
+
+    const request = new Request(new URL(`https://${registryB}/v2/victim/app/blobs/uploads/`), {
+      method: "POST",
+      headers: { Authorization: usernamePasswordToAuth("v0", token) },
+    });
+    const ctx = createExecutionContext();
+    const res = (await worker.fetch(request, jwtEnv(publicKey), ctx)) as Response;
+    await waitOnExecutionContext(ctx);
+
+    expect(res.status).toBe(401);
+  });
+
+  test("a token is rejected when the audience host matches but the port does not", async () => {
+    const { token, publicKey } = await mintToken(`https://${registryA}:8787`);
+
+    const matching = await fetchWithToken(`${registryA}:8787`, "/v2/", token, publicKey);
+    expect(matching.status).toBe(200);
+
+    const mismatched = await fetchWithToken(`${registryA}:9999`, "/v2/", token, publicKey);
+    expect(mismatched.status).toBe(401);
+  });
+
+  test("verifyAudience accepts the spellings an issuer may reasonably use", async () => {
+    const request = new Request("https://registry.example/v2/");
+    for (const audience of [
+      "https://registry.example",
+      "https://registry.example/",
+      "http://registry.example",
+      "registry.example",
+      "  https://registry.example  ",
+      "https://REGISTRY.example",
+    ]) {
+      expect(
+        RegistryTokens.verifyAudience(request, { aud: audience } as RegistryAuthProtocolTokenPayload),
+        `expected audience ${JSON.stringify(audience)} to be accepted`,
+      ).toBe(true);
+    }
+  });
+
+  test("verifyAudience rejects a missing, unusable, or foreign audience", async () => {
+    const request = new Request("https://registry.example/v2/");
+    for (const audience of [
+      undefined,
+      "",
+      "   ",
+      // An array audience is legal per RFC 7519 but is not issued or accepted here.
+      ["https://registry.example"],
+      "https://registry-b.example",
+      "registry-b.example",
+      // Must not be fooled into reading a foreign host as the audience.
+      "registry.example@registry-b.example",
+      "https://registry-b.example/registry.example",
+      "https://registry.example.evil.test",
+      "registry.example:8787",
+    ]) {
+      expect(
+        RegistryTokens.verifyAudience(request, { aud: audience } as unknown as RegistryAuthProtocolTokenPayload),
+        `expected audience ${JSON.stringify(audience)} to be rejected`,
+      ).toBe(false);
+    }
+  });
+
+  test("username and password authentication is unaffected", async () => {
+    // user.ts reuses verifyPayload for its capability checks and has no
+    // audience of its own, so the new check must not reach it.
+    const res = await fetch(createRequest("GET", "/v2/", null));
+    expect(res.status).toBe(200);
   });
 });
 
