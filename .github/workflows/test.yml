@@ -23,6 +23,8 @@ jobs:
           cache: "pnpm"
 
       - run: pnpm install
+      - name: Check worker types are up to date
+        run: pnpm run generate-types:check
       - run: pnpm run typecheck
       - run: pnpm run lint
       - run: pnpm run format:check
